@@ -10,48 +10,48 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var isHorizontal = true
-    private var rectangleCount: CGFloat = 7
+    private var rectangleCount = 7
+    private var colors = [Color.red, .blue, .green, .gray, .yellow, .purple, .black]
     
     var body: some View {
-        GeometryReader { proxy in
-            let range = 0..<Int(rectangleCount)
-            let rangeReversed = range.reversed()
-            
-            let HMargin: CGFloat = 5
-            
-            ZStack() {
-                ForEach(range, id: \.self) { index in
-                    let rectangleWidth = proxy.size.width / rectangleCount
-                    let rectangleHeight = proxy.size.height / rectangleCount
-                    
-                    let rectangleWidthH = rectangleWidth - HMargin
-                    
-                    let reversedIndex = CGFloat(
-                        rangeReversed[rangeReversed.index(rangeReversed.startIndex, offsetBy: index)]
-                    )
-                    
-                    let horizontalOffsetX = (reversedIndex * (rectangleWidthH + HMargin))
-                    let diagonalOffsetX = reversedIndex * rectangleWidth
-                    
-                    let horizontalOffsetY = proxy.size.height / 2
-                    let diagonalOffsetY = CGFloat(index) * rectangleHeight
-                    
-                    
-                    RoundedRectangle(cornerRadius: 10)
-                        .frame(
-                            width: isHorizontal ? rectangleWidthH: rectangleWidth * 2,
-                            height: isHorizontal ? rectangleWidth : rectangleHeight)
-                        .offset(
-                            x: isHorizontal ? horizontalOffsetX : diagonalOffsetX,
-                            y: isHorizontal ? horizontalOffsetY : diagonalOffsetY
-                        )
-                        .foregroundStyle(.blue)
-                }
+        let layout = isHorizontal ? AnyLayout(HStackLayout()) : AnyLayout(DiagonalLayout())
+        
+        layout {
+            ForEach(0..<rectangleCount, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 12)
+                    .foregroundStyle(colors[i])
+                    .scaledToFit()
             }
-            .animation(.linear, value: isHorizontal)
         }
         .onTapGesture {
-            isHorizontal.toggle()
+            withAnimation(.linear) {
+                isHorizontal.toggle()
+            }
+        }
+    }
+}
+
+struct DiagonalLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions() // View size will be unspecified
+    }
+    
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let count = subviews.count
+        let height = bounds.height / CGFloat(count)
+        
+        let wStep = (bounds.width - height) / CGFloat(count - 1)
+        for (i, view) in subviews.enumerated() {
+            view.place(
+                at: .init(
+                    x: CGFloat(i) * wStep,
+                    y: (bounds.maxY - height) - (height * CGFloat(i))
+                ),
+                proposal: .init(
+                    width: height,
+                    height: height
+                )
+            )
         }
     }
 }
